@@ -117,9 +117,14 @@ set_property -dict {PACKAGE_PIN L15 IOSTANDARD LVCMOS33} [get_ports {servo2}]
 set_property -dict {PACKAGE_PIN L16 IOSTANDARD LVCMOS33} [get_ports {servo3}]
 
 # I2S0 signals
-set_property -dict {PACKAGE_PIN B14 IOSTANDARD LVCMOS33} [get_ports i2s0_sck]
-set_property -dict {PACKAGE_PIN A13 IOSTANDARD LVCMOS33} [get_ports i2s0_ws]
-set_property -dict {PACKAGE_PIN B13 IOSTANDARD LVCMOS33} [get_ports i2s0_sd]
+set_property -dict {PACKAGE_PIN N5 IOSTANDARD LVCMOS33} [get_ports i2s0_sck]
+set_property -dict {PACKAGE_PIN T3 IOSTANDARD LVCMOS33} [get_ports i2s0_ws]
+set_property -dict {PACKAGE_PIN R4 IOSTANDARD LVCMOS33} [get_ports i2s0_sd]
+
+# I2S1 signals
+set_property -dict {PACKAGE_PIN B14 IOSTANDARD LVCMOS33} [get_ports i2s1_sck]
+set_property -dict {PACKAGE_PIN A13 IOSTANDARD LVCMOS33} [get_ports i2s1_ws]
+set_property -dict {PACKAGE_PIN B13 IOSTANDARD LVCMOS33} [get_ports i2s1_sd]
 
 # UART0 signals
 set_property -dict {PACKAGE_PIN B18 IOSTANDARD LVCMOS33} [get_ports uart0_tx]

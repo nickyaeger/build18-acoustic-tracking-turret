@@ -5,6 +5,8 @@ module ChipInterface (
     input  logic        CLOCK_100, // 100 MHz Clock
     output logic        i2s0_sck, i2s0_ws, 
     input  logic        i2s0_sd,
+    output logic        i2s1_sck, i2s1_ws, 
+    input  logic        i2s1_sd,
     output logic        uart0_tx,
     input  logic [15:0] SW,
     input  logic [ 3:0] BTN,
@@ -13,16 +15,16 @@ module ChipInterface (
 );
 
     logic [ 6:0] HEX0, HEX1, HEX2, HEX3, HEX4, HEX5, HEX6, HEX7;
-    logic [31:0] BCD;
+    logic [31:0] BCD_LT, BCD_RT;
 
-    SevenSegmentDisplay ssd (.BCD7(BCD[31:28]),
-                             .BCD6(BCD[27:24]),
-                             .BCD5(BCD[23:20]),
-                             .BCD4(BCD[19:16]),
-                             .BCD3(BCD[15:12]),
-                             .BCD2(BCD[11:8]),
-                             .BCD1(BCD[7:4]),
-                             .BCD0(BCD[3:0]),
+    SevenSegmentDisplay ssd (.BCD7(BCD_RT[15:12]),
+                             .BCD6(BCD_RT[11:8]),
+                             .BCD5(BCD_RT[7:4]),
+                             .BCD4(BCD_RT[3:0]),
+                             .BCD3(BCD_LT[15:12]),
+                             .BCD2(BCD_LT[11:8]),
+                             .BCD1(BCD_LT[7:4]),
+                             .BCD0(BCD_LT[3:0]),
                              .blank(8'b0),
                              .HEX7,
                              .HEX6,
@@ -49,25 +51,40 @@ module ChipInterface (
                             .D1_SEG(D0_SEG),
                             .D2_SEG(D1_SEG));
 
-    logic [17:0] data;
-    logic        d_rdy_l, d_rdy_r;
+    logic [1:0][17:0] data;
+    logic [1:0]       data_rdy;
 
     I2SInterface i2s0 (.clock(CLOCK_100),
                        .reset(BTN[0]),
                        .I2S_SCK(i2s0_sck),
                        .I2S_WS(i2s0_ws),
                        .I2S_SD(i2s0_sd),
-                       .data,
-                       .d_rdy_l,
-                       .d_rdy_r);
+                       .data(data[0]),
+                       .d_rdy_l(data_rdy[0]),
+                       .d_rdy_r());
+
+    I2SInterface i2s1 (.clock(CLOCK_100),
+                       .reset(BTN[0]),
+                       .I2S_SCK(i2s1_sck),
+                       .I2S_WS(i2s1_ws),
+                       .I2S_SD(i2s1_sd),
+                       .data(data[1]),
+                       .d_rdy_l(data_rdy[1]),
+                       .d_rdy_r());
     
     ReadData #(.CALIB_VAL(13'd7040))
             rd0 (.clock(CLOCK_100),
                  .reset(BTN[0]),
-                 .data,
-                 .data_rdy(d_rdy_l),
-                 .disp_val(BCD)
-                 );
+                 .data(data[0]),
+                 .data_rdy(data_rdy[0]),
+                 .disp_val(BCD_LT));
+
+    ReadData #(.CALIB_VAL(13'd7040))
+            rd1 (.clock(CLOCK_100),
+                 .reset(BTN[0]),
+                 .data(data[1]),
+                 .data_rdy(data_rdy[1]),
+                 .disp_val(BCD_RT));
 
     logic [7:0]  angle;
     logic [26:0] clk_counter;
