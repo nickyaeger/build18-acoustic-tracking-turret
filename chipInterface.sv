@@ -14,6 +14,8 @@ module ChipInterface (
     output logic [ 3:0] D0_AN, D1_AN
 );
 
+    import utils::*;
+
     logic [ 6:0] HEX0, HEX1, HEX2, HEX3, HEX4, HEX5, HEX6, HEX7;
     logic [31:0] BCD_LT, BCD_RT;
 
@@ -72,7 +74,7 @@ module ChipInterface (
                        .d_rdy_l(data_rdy[1]),
                        .d_rdy_r());
     
-    ReadData #(.CALIB_VAL(13'd7040))
+    ReadData #(.CALIB_VAL(13'd7296))
             rd0 (.clock(CLOCK_100),
                  .reset(BTN[0]),
                  .data(data[0]),

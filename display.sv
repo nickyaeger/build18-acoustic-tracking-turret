@@ -8,6 +8,8 @@ module ReadData #(parameter CALIB_VAL=0) (
     output logic [31:0] disp_val
 );
 
+    import utils::*;
+
     logic [25:0] disp_counter;
     logic [17:0] data_reg;
 
@@ -19,15 +21,10 @@ module ReadData #(parameter CALIB_VAL=0) (
         end else begin
             if (data_rdy) data_reg <= data;
             if (disp_counter == 26'd10_000_000) begin // 10 Hz refresh rate
-                disp_val <= rectify_data(data_reg + CALIB_VAL);
+                disp_val <= rectify_data(data_reg, CALIB_VAL);
                 disp_counter <= 0;
             end else disp_counter <= disp_counter + 1;
         end
     end
     
 endmodule : ReadData
-
-function logic [31:0] rectify_data(input logic [17:0] data);
-    if (data[17] == 1) return {14'b0, -data};
-    else return {14'b0, data};
-endfunction
