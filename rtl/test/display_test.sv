@@ -6,7 +6,7 @@ module ReadData_tb ();
     logic        data_rdy;
     logic [31:0] disp_val;
 
-    ReadData dut (.*);
+    DisplaySamples dut (.*);
 
     initial begin
         clock = 1;
