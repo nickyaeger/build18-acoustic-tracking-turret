@@ -26,25 +26,25 @@ def arrival_times(target, receivers, c=343.0):
 # -----------------------------
 # Signal generation + sampling
 # -----------------------------
-# def windowed_sinc_pulse(t, t0, width_s=0.00030, cycles=6):
-#     """
-#     Simple "noticeable spike": a windowed sinc-like pulse.
-#     - width_s: controls main lobe width (smaller => sharper)
-#     - cycles: number of main-lobe-ish widths included in the window
-#     """
-#     # Normalized time around pulse center
-#     x = (t - t0) / width_s
+def windowed_sinc_pulse(t, t0, width_s=0.00030, cycles=6):
+    """
+    Simple "noticeable spike": a windowed sinc-like pulse.
+    - width_s: controls main lobe width (smaller => sharper)
+    - cycles: number of main-lobe-ish widths included in the window
+    """
+    # Normalized time around pulse center
+    x = (t - t0) / width_s
 
-#     # sinc pulse (np.sinc is sin(pi x)/(pi x))
-#     s = np.sinc(x)
+    # sinc pulse (np.sinc is sin(pi x)/(pi x))
+    s = np.sinc(x)
 
-#     # Window to make it finite (Hann window over |x| <= cycles)
-#     w = np.zeros_like(t)
-#     mask = np.abs(x) <= cycles
-#     # Hann window in x-domain
-#     w[mask] = 0.5 * (1.0 + np.cos(np.pi * x[mask] / cycles))
+    # Window to make it finite (Hann window over |x| <= cycles)
+    w = np.zeros_like(t)
+    mask = np.abs(x) <= cycles
+    # Hann window in x-domain
+    w[mask] = 0.5 * (1.0 + np.cos(np.pi * x[mask] / cycles))
 
-#     return s * w
+    return s * w
 
 
 def windowed_sine_pulse(t, t0, freq_hz=2000.0, width_s=0.003, cycles=3):
@@ -116,8 +116,8 @@ def simulate_capture(target, rx0, rx1, mic_spacing, c=343.0, fs=192_000):
     t0 = 0.5 * (t[0] + t[-1])
 
     # Source pulse in "source time"
-    # s_src = windowed_sinc_pulse(t, t0=t0, width_s=0.00030, cycles=6)
-    s_src = windowed_sine_pulse(t, t0, freq_hz=6000.0, width_s=0.003, cycles=12)
+    s_src = windowed_sinc_pulse(t, t0=t0, width_s=0.00030, cycles=6)
+    # s_src = windowed_sine_pulse(t, t0, freq_hz=6000.0, width_s=0.003, cycles=12)
 
     # Propagation: time-of-flight to each receiver
     taus = arrival_times(target, receivers, c=c)
@@ -372,8 +372,9 @@ def plot_waveforms(sim, max_stem_samples=220):
 # -----------------------------
 def main():
     # ---- Config (meters) ----
-    mic_spacing = 0.18
-    target = np.array([0.70, 0.25])
+    # mic_spacing = 0.60
+    mic_spacing = 0.35
+    target = np.array([4.55, 2.55])
     # target = np.array([7.00, 0.25])
 
     # ---- Geometry ----
@@ -386,14 +387,15 @@ def main():
         rx1=rx1,
         mic_spacing=mic_spacing,
         c=343.0,
-        fs=192_000,  # keep high so the delay is well-resolved
+        # fs=192_000,  # keep high so the delay is well-resolved
+        fs=44_000,  # keep high so the delay is well-resolved
     )
 
     k_hat, lags, R = estimate_tdoa_k(sim["rx0"], sim["rx1"], sim["fs"], sim["tmax"])
     print("k_hat (samples):", k_hat)
     print("tau_hat (seconds):", k_hat / sim["fs"])
 
-    lut = build_tdoa_lut(fs=sim["fs"], mic_spacing=0.18, c=343.0, degrees=True)
+    lut = build_tdoa_lut(fs=sim["fs"], mic_spacing=mic_spacing, c=343.0, degrees=True)
 
     dtau_hat, theta_hat = k_to_delay_and_angle(k_hat, lut)
 
