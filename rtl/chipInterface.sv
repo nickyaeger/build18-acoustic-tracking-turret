@@ -110,6 +110,11 @@ module ChipInterface (
                  .window(),
                  .noise_detected(noise_detected[1]));
 
+    blk_mem_gen_0 lut (.clka(CLOCK_100),
+                       .addra(addr),
+                       .douta(angle));
+
+    logic [7:0]  addr;
     logic [7:0]  angle;
     logic [26:0] clk_counter;
     logic        tx_busy, data_rdy_uart;
@@ -119,12 +124,12 @@ module ChipInterface (
     always_ff @(posedge CLOCK_100) begin
         if (BTN[0]) begin
             clk_counter <= 0;
-            angle <= 0;
+            addr <= 0;
         end else begin
             if (clk_counter == 27'd99_999_999) begin
                 clk_counter <= 0;
-                if (angle == 8'd180) angle <= 0;
-                else angle <= angle + 1;
+                if (addr == 7'd84) addr <= 0;
+                else addr <= addr + 1;
             end else clk_counter <= clk_counter + 1;
         end
     end
