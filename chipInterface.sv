@@ -9,6 +9,7 @@ module ChipInterface (
     input  logic        i2s1_sd,
     output logic        uart0_tx,
     input  logic [15:0] SW,
+    output logic [15:0] LD,
     input  logic [ 3:0] BTN,
     output logic [ 7:0] D0_SEG, D1_SEG,
     output logic [ 3:0] D0_AN, D1_AN
@@ -74,19 +75,40 @@ module ChipInterface (
                        .d_rdy_l(data_rdy[1]),
                        .d_rdy_r());
     
-    ReadData #(.CALIB_VAL(13'd7296))
-            rd0 (.clock(CLOCK_100),
+    DisplaySamples #(.CALIB_VAL(13'd7296))
+                rd0 (.clock(CLOCK_100),
+                     .reset(BTN[0]),
+                     .data(data[0]),
+                     .data_rdy(data_rdy[0]),
+                     .disp_val(BCD_LT));
+
+    DisplaySamples #(.CALIB_VAL(13'd7040))
+                rd1 (.clock(CLOCK_100),
+                     .reset(BTN[0]),
+                     .data(data[1]),
+                     .data_rdy(data_rdy[1]),
+                     .disp_val(BCD_RT));
+
+    logic [1:0] noise_detected;
+
+    assign LD[ 7:0] = (noise_detected[0]) ? 8'b1111_1111 : 0;
+    assign LD[15:8] = (noise_detected[1]) ? 8'b1111_1111 : 0;
+
+    Buffer #(.CALIB_VAL(13'd7296))
+           buf0 (.clock(CLOCK_100),
                  .reset(BTN[0]),
                  .data(data[0]),
                  .data_rdy(data_rdy[0]),
-                 .disp_val(BCD_LT));
+                 .window(),
+                 .noise_detected(noise_detected[0]));
 
-    ReadData #(.CALIB_VAL(13'd7040))
-            rd1 (.clock(CLOCK_100),
+    Buffer #(.CALIB_VAL(13'd7040))
+           buf1 (.clock(CLOCK_100),
                  .reset(BTN[0]),
                  .data(data[1]),
                  .data_rdy(data_rdy[1]),
-                 .disp_val(BCD_RT));
+                 .window(),
+                 .noise_detected(noise_detected[1]));
 
     logic [7:0]  angle;
     logic [26:0] clk_counter;

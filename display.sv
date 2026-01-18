@@ -1,7 +1,7 @@
 // Commented out to prevent synthesis issues
 // `default_nettype none
 
-module ReadData #(parameter CALIB_VAL=0) (
+module DisplaySamples #(parameter CALIB_VAL=0, REFRESH_RATE=10) (
     input  logic        clock, reset,
     input  logic [17:0] data,
     input  logic        data_rdy,
@@ -9,6 +9,8 @@ module ReadData #(parameter CALIB_VAL=0) (
 );
 
     import utils::*;
+
+    localparam REFRESH_PERIOD = 100_000_000 / REFRESH_RATE;
 
     logic [25:0] disp_counter;
     logic [17:0] data_reg;
@@ -20,11 +22,11 @@ module ReadData #(parameter CALIB_VAL=0) (
             disp_val <= 0;
         end else begin
             if (data_rdy) data_reg <= data;
-            if (disp_counter == 26'd10_000_000) begin // 10 Hz refresh rate
-                disp_val <= rectify_data(data_reg, CALIB_VAL);
+            if (disp_counter == REFRESH_PERIOD-1) begin
+                disp_val <= {14'b0, rectify_data(data_reg, CALIB_VAL)};
                 disp_counter <= 0;
             end else disp_counter <= disp_counter + 1;
         end
     end
     
-endmodule : ReadData
+endmodule : DisplaySamples
