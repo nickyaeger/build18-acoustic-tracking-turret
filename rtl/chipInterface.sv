@@ -20,7 +20,7 @@ module ChipInterface (
     logic [ 6:0] HEX0, HEX1, HEX2, HEX3, HEX4, HEX5, HEX6, HEX7;
     logic [31:0] BCD_LT, BCD_RT;
 
-    SevenSegmentDisplay ssd (.BCD7(BCD_RT[15:12]),
+    SevenSegmentDisplay ssd (.BCD7(BCD_RT[15:12]),  
                              .BCD6(BCD_RT[11:8]),
                              .BCD5(BCD_RT[7:4]),
                              .BCD4(BCD_RT[3:0]),
@@ -89,54 +89,73 @@ module ChipInterface (
                      .data_rdy(data_rdy[1]),
                      .disp_val(BCD_RT));
 
-    logic [1:0] noise_detected;
+    logic [1:0] noise_detected, start_calc;
 
     assign LD[ 7:0] = (noise_detected[0]) ? 8'b1111_1111 : 0;
     assign LD[15:8] = (noise_detected[1]) ? 8'b1111_1111 : 0;
-
-    Buffer #(.CALIB_VAL(13'd7296))
+    
+    // Left mic
+    // NOTE: buf 0 is our reference.
+    // we're only running threshold detection on buf0, so we'll
+    // cross-correlate it to buf1 and argmax on the shift to buf1 (k),
+    // giving us k_hat, will be used as the index into the LUT.
+    Buffer #(.THRESHOLD(13'd4_096), .CALIB_VAL(13'd7_296))
            buf0 (.clock(CLOCK_100),
                  .reset(BTN[0]),
-                 .data(data[0]),
+                 .restart(BTN[1]),
+                 .data_in(data[0]),
                  .data_rdy(data_rdy[0]),
-                 .window(),
-                 .noise_detected(noise_detected[0]));
+                 .read_offset(addr0),
+                 .finished_calc(tdoa_done),
+                 .data_out(sample0),
+                 .noise_detected(noise_detected[0]),
+                 .start_calc(start_calc[0]));
 
-    Buffer #(.CALIB_VAL(13'd7040))
+    // Right mic
+    Buffer #(.THRESHOLD(13'd4_096), .CALIB_VAL(13'd7_040))
            buf1 (.clock(CLOCK_100),
                  .reset(BTN[0]),
-                 .data(data[1]),
+                 .restart(BTN[1]),
+                 .data_in(data[1]),
                  .data_rdy(data_rdy[1]),
-                 .window(),
-                 .noise_detected(noise_detected[1]));
+                 .read_offset(addr1),
+                 .finished_calc(tdoa_done),
+                 .data_out(sample1),
+                 .noise_detected(noise_detected[1]),
+                 .start_calc(start_calc[1]));
+
+    TDOA tdoa (.clock(CLOCK_100),
+               .reset(BTN[0]),
+               .restart(BTN[1]),
+               .ready(start_calc[0]),
+               .din0(sample0),
+               .din1(sample1),
+               .addr0,
+               .addr1,
+               .done(tdoa_done), 
+               .k_hat);
 
     blk_mem_gen_0 lut (.clka(CLOCK_100),
-                       .addra(addr),
+                       .addra(lut_idx),
                        .douta(angle));
 
-    logic [7:0]  addr;
+    logic [8:0]  addr0, addr1;
+    logic [17:0] sample0, sample1;
+    logic [7:0]  k_hat, lut_idx;
     logic [7:0]  angle;
-    logic [26:0] clk_counter;
-    logic        tx_busy, data_rdy_uart;
+    logic        tdoa_done, tx_busy, angle_rdy;
 
-    assign data_rdy_uart = (clk_counter == 0 & ~tx_busy);
+    assign angle_rdy = tdoa_done & ~tx_busy;
 
-    always_ff @(posedge CLOCK_100) begin
-        if (BTN[0]) begin
-            clk_counter <= 0;
-            addr <= 0;
-        end else begin
-            if (clk_counter == 27'd99_999_999) begin
-                clk_counter <= 0;
-                if (addr == 7'd84) addr <= 0;
-                else addr <= addr + 1;
-            end else clk_counter <= clk_counter + 1;
-        end
+    always_comb begin
+        if (-k_hat > 8'd42) lut_idx = 0;
+        else if (k_hat > 8'd42) lut_idx = 8'd84;
+        else lut_idx = k_hat + 8'd42;
     end
 
     UARTInterface uart0 (.clock(CLOCK_100),
                          .reset(BTN[0]),
-                         .data_rdy(data_rdy_uart),
+                         .data_rdy(angle_rdy),
                          .data(angle),
                          .UART_TX(uart0_tx),
                          .tx_busy);
